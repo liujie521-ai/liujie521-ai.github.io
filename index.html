@@ -57,27 +57,9 @@
             100% { opacity: 0.6; }
         }
         
-        /* 横屏提示 */
-        #orientationHint {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(22, 22, 22, 0.95);
-            color: #ffd9b5;
-            padding: 20px;
-            border-radius: 10px;
-            border: 2px solid #c5a880;
-            text-align: center;
-            z-index: 10000;
-            display: none;
-            font-size: 1.2rem;
-        }
-        
         @media (max-width: 768px) and (orientation: landscape) {
             .blessing { font-size: 1.8rem; }
             .title { font-size: 1.5rem; }
-            #orientationHint { display: none !important; }
         }
     </style>
 </head>
@@ -85,18 +67,12 @@
     <div id="overlay">
         <button class="btn" id="startBtn">🎵 点击开始圣诞音乐派对</button>
     </div>
-    
-    <!-- 横屏提示 -->
-    <!-- <div id="orientationHint">
-        <div>📱 请将手机旋转至横屏</div>
-        <div style="font-size: 1rem; margin-top: 10px;">以获得最佳视觉效果</div>
-    </div> -->
 
     <script type="importmap">
     {
         "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js ",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/ "
         }
     }
     </script>
@@ -106,23 +82,6 @@
         import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
         import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-
-        // 横屏检测
-        function checkOrientation() {
-            const hint = document.getElementById('orientationHint');
-            const isMobile = window.innerWidth <= 768;
-            const isLandscape = window.matchMedia('(orientation: landscape)').matches;
-            
-            if (isMobile && !isLandscape) {
-                hint.style.display = 'block';
-            } else {
-                hint.style.display = 'none';
-            }
-        }
-        
-        window.addEventListener('orientationchange', checkOrientation);
-        window.addEventListener('resize', checkOrientation);
-        checkOrientation(); // 初始检查
 
         const blessings = ['但愿这个冬天 ⛄','爱与好运同在 💫','在无法预料的未来里 🌈','我们平平安安就好 🏠','露露圣诞快乐 🎄'];
         let blessingIndex = 0;
@@ -263,7 +222,7 @@
         }
 
         function loadAudio() {
-            const audioUrl = "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Mark_Smeby/En_attendant_Nol/Mark_Smeby_-_07_-_Jingle_Bell_Swing.mp3";
+            const audioUrl = "https://files.freemusicarchive.org/storage-freemusicarchive-org/music/ccCommunity/Mark_Smeby/En_attendant_Nol/Mark_Smeby_-_07_-_Jingle_Bell_Swing.mp3 ";
             const loader = new THREE.AudioLoader();
             loader.load(
                 audioUrl,
@@ -320,7 +279,7 @@
                 uniforms: {
                     ...uniforms,
                     pointTexture: { 
-                        value: new THREE.TextureLoader().load('https://assets.codepen.io/3685267/spark1.png') 
+                        value: new THREE.TextureLoader().load('https://assets.codepen.io/3685267/spark1.png ') 
                     }
                 },
                 vertexShader, fragmentShader,
@@ -436,11 +395,11 @@
             }
 
             const sprites = [
-                'https://assets.codepen.io/3685267/snowflake1.png',
-                'https://assets.codepen.io/3685267/snowflake2.png',
-                'https://assets.codepen.io/3685267/snowflake3.png',
-                'https://assets.codepen.io/3685267/snowflake4.png',
-                'https://assets.codepen.io/3685267/snowflake5.png'
+                'https://assets.codepen.io/3685267/snowflake1.png ',
+                'https://assets.codepen.io/3685267/snowflake2.png ',
+                'https://assets.codepen.io/3685267/snowflake3.png ',
+                'https://assets.codepen.io/3685267/snowflake4.png ',
+                'https://assets.codepen.io/3685267/snowflake5.png '
             ];
             sprites.forEach(sprite => createSnowSet(sprite));
         }
@@ -468,7 +427,7 @@
                 uniforms: {
                     ...uniforms,
                     pointTexture: { 
-                        value: new THREE.TextureLoader().load('https://assets.codepen.io/3685267/spark1.png') 
+                        value: new THREE.TextureLoader().load('https://assets.codepen.io/3685267/spark1.png ') 
                     }
                 },
                 vertexShader, fragmentShader,
@@ -508,7 +467,6 @@
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
                 if (composer && composer.setSize) composer.setSize(window.innerWidth, window.innerHeight);
-                checkOrientation(); // 检测方向变化
             });
         }
     </script>
