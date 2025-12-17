@@ -37,13 +37,6 @@
         .btn:active {
             transform: scale(0.95);
         }
-        .text-loading {
-            font-size: 1.5rem; color: #fff;
-            animation: pulse 1.5s infinite;
-        }
-        .error {
-            color: #ff6b6b; font-size: 1rem; max-width: 400px; padding: 10px;
-        }
         .blessing {
             font-size: 2rem;
             color: #ffd9b5;
@@ -54,56 +47,6 @@
             user-select: none;
             text-shadow: 0 0 10px rgba(255, 217, 181, 0.5);
         }
-        .audio-status {
-            font-size: 0.9rem;
-            color: #93abd3;
-            margin-top: 10px;
-        }
-        .volume-control {
-            margin-top: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.9rem;
-        }
-        .volume-slider {
-            width: 150px;
-            height: 6px;
-            -webkit-appearance: none;
-            appearance: none;
-            background: #333;
-            border-radius: 3px;
-            outline: none;
-        }
-        .volume-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            background: #c5a880;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        .volume-slider::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
-            background: #c5a880;
-            border-radius: 50%;
-            cursor: pointer;
-            border: none;
-        }
-        .file-check {
-            font-size: 0.8rem;
-            color: #ff6b6b;
-            margin-top: 10px;
-            display: none;
-        }
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
-        }
-        
         @media (max-width: 768px) and (orientation: landscape) {
             .blessing { font-size: 1.8rem; }
             .title { font-size: 1.5rem; }
@@ -112,18 +55,7 @@
 </head>
 <body>
     <div id="overlay">
-        <button class="btn" id="startBtn">🎵 点击开始圣诞音乐派对</button>
-        <div class="audio-status" id="audioStatus" style="display: none;">
-            <div>🔊 音频已激活</div>
-            <div class="volume-control">
-                <span>音量:</span>
-                <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="70">
-                <span id="volumeValue">70%</span>
-            </div>
-        </div>
-        <div class="file-check" id="fileCheck">
-            ⚠️ 未检测到音频文件，请确保 "Jingle_Bell_Swing.mp3" 与HTML在同一目录
-        </div>
+        <button class="btn" id="startBtn">🎄 开启圣诞视觉派对</button>
     </div>
 
     <script type="importmap">
@@ -185,33 +117,21 @@
         const randChoise = arr => arr[randInt(arr.length)];
         const polar = (ang, r = 1) => [r * cos(ang), r * sin(ang)];
 
-        let scene, camera, renderer, analyser, composer, audio;
+        let scene, camera, renderer, composer;
         let step = 0;
-        const uniforms = { time: { value: 0.0 }, step: { value: 0.0 } };
-        const fftSize = 2048;
+        const uniforms = { 
+            time: { value: 0.0 }, 
+            step: { value: 0.0 },
+            // 移除音频相关uniform
+        };
         const totalPoints = 4000;
-        const listener = new THREE.AudioListener();
-        audio = new THREE.Audio(listener);
 
         document.getElementById("startBtn").addEventListener("click", () => {
             const startBtn = document.getElementById("startBtn");
             if (startBtn) startBtn.style.display = 'none';
-            
-            // 显示音频状态
-            const audioStatus = document.getElementById("audioStatus");
-            if (audioStatus) audioStatus.style.display = 'block';
-            
-            loadAudio();
+            init();
+            startBlessings();
         });
-
-        function showError(message) {
-            const overlay = document.getElementById("overlay");
-            overlay.innerHTML = `
-                <div class="title">❌ 加载失败</div>
-                <div class="error">${message}</div>
-                <button class="btn" onclick="location.reload()">🔄 重新尝试</button>
-            `;
-        }
 
         function init() {
             const overlayEl = document.getElementById("overlay");
@@ -237,15 +157,6 @@
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
             camera.position.set(-0.1, -2.6, 24.4);
 
-            if (analyser && analyser.data) {
-                const tex = new THREE.DataTexture(analyser.data, fftSize / 2, 1, THREE.RedFormat);
-                tex.needsUpdate = true;
-                uniforms.tAudioData = { value: tex };
-            } else {
-                const empty = new Uint8Array(fftSize / 2);
-                uniforms.tAudioData = { value: new THREE.DataTexture(empty, fftSize / 2, 1, THREE.RedFormat) };
-            }
-
             addPlane(scene, uniforms, 3000);
             addSnow(scene, uniforms);
             range(10).forEach(i => {
@@ -264,144 +175,20 @@
 
             addListeners(camera, renderer, composer);
             animate();
-            startBlessings();
         }
 
         function animate(time) {
             requestAnimationFrame(animate);
-            if (analyser && uniforms.tAudioData && uniforms.tAudioData.value) {
-                analyser.getFrequencyData();
-                const tex = uniforms.tAudioData.value;
-                if (tex.image && tex.image.data) {
-                    tex.image.data.set(analyser.data);
-                    tex.needsUpdate = true;
-                }
-            }
             step = (step + 1) % 1000;
             uniforms.time.value = time;
             uniforms.step.value = step;
-            if (composer) composer.render();
-            else if (renderer && scene && camera) renderer.render(scene, camera);
-        }
-
-        function loadAudio() {
-            // ✅ 使用相对路径 - 音频文件与HTML在同一目录
-            const audioUrl = "Jingle_Bell_Swing.mp3";
-            
-            const loader = new THREE.AudioLoader();
-            
-            // 显示加载状态
-            const overlay = document.getElementById("overlay");
-            overlay.innerHTML = '<div class="text-loading">🎵 正在加载音频...</div>';
-            
-            // 检查文件是否存在（可选）
-            fetch(audioUrl, { method: 'HEAD' })
-                .then(response => {
-                    if (!response.ok) {
-                        console.warn('⚠️ 音频文件可能不存在:', audioUrl);
-                        document.getElementById('fileCheck').style.display = 'block';
-                    }
-                })
-                .catch(() => {
-                    console.warn('⚠️ 无法检查音频文件');
-                    document.getElementById('fileCheck').style.display = 'block';
-                });
-            
-            loader.load(
-                audioUrl,
-                buffer => {
-                    console.log('✅ 音频加载成功:', audioUrl);
-                    
-                    // 关键修复：恢复音频上下文
-                    if (listener.context.state === 'suspended') {
-                        listener.context.resume().then(() => {
-                            console.log('✅ 音频上下文已恢复');
-                            setupAudio(buffer);
-                        }).catch(err => {
-                            console.error('❌ 音频上下文恢复失败:', err);
-                            showError('音频上下文激活失败，请在浏览器设置中允许音频播放');
-                        });
-                    } else {
-                        setupAudio(buffer);
-                    }
-                },
-                progress => {
-                    // 显示加载进度
-                    const percent = progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0;
-                    const loadingEl = document.querySelector('.text-loading');
-                    if (loadingEl) loadingEl.textContent = `🎵 加载中... ${percent}%`;
-                },
-                error => {
-                    console.error('❌ 音频加载失败:', error);
-                    console.error('请确保音频文件 "Jingle_Bell_Swing.mp3" 与HTML文件在同一目录');
-                    showError(`音频加载失败。请检查：<br>
-                        1. 文件 "Jingle_Bell_Swing.mp3" 是否存在<br>
-                        2. 文件名是否完全匹配（大小写敏感）<br>
-                        3. 网络连接是否正常`);
-                }
-            );
-        }
-
-        function setupAudio(buffer) {
-            try {
-                audio.setBuffer(buffer);
-                audio.setLoop(true);
-                audio.setVolume(0.7); // 降低默认音量，避免突然很大声
-                
-                // 播放音频
-                const playPromise = audio.play();
-                
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        console.log('✅ 音频正在播放');
-                        
-                        // 更新UI显示音频状态
-                        document.getElementById("overlay").innerHTML = `
-                            <div class="title">🎄 音乐派对已开始！</div>
-                            <div class="audio-status">
-                                <div>🔊 正在播放: Jingle Bell Swing</div>
-                                <div class="volume-control">
-                                    <span>音量:</span>
-                                    <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="70">
-                                    <span id="volumeValue">70%</span>
-                                </div>
-                            </div>
-                            <div class="blessing" id="blessing">${blessings[0]}</div>
-                        `;
-                        
-                        // 添加音量控制
-                        const volumeSlider = document.getElementById('volumeSlider');
-                        const volumeValue = document.getElementById('volumeValue');
-                        volumeSlider.addEventListener('input', (e) => {
-                            const volume = e.target.value / 100;
-                            audio.setVolume(volume);
-                            volumeValue.textContent = e.target.value + '%';
-                        });
-                        
-                        analyser = new THREE.AudioAnalyser(audio, fftSize);
-                        init();
-                        
-                    }).catch(err => {
-                        console.error('❌ 音频播放失败:', err);
-                        showError('音频播放失败：浏览器阻止了自动播放。请确保点击了按钮，并检查浏览器权限设置。');
-                    });
-                } else {
-                    // 旧版浏览器兼容
-                    console.log('✅ 音频开始播放（兼容模式）');
-                    analyser = new THREE.AudioAnalyser(audio, fftSize);
-                    init();
-                }
-                
-            } catch (err) {
-                console.error('❌ 音频设置失败:', err);
-                showError('音频播放失败：' + err.message);
-            }
+            composer.render();
         }
 
         function addTree(scene, uniforms, totalPoints, treePosition) {
             const vertexShader = `
                 attribute float mIndex; varying vec3 vColor; varying float opacity;
-                uniform sampler2D tAudioData;
+                uniform float time; // 改用时间驱动
                 float norm(float v, float min, float max) { return (v - min) / (max - min); }
                 float lerp(float n, float min, float max) { return (max - min) * n + min; }
                 float map(float v, float sMin, float sMax, float dMin, float dMax) { 
@@ -411,9 +198,11 @@
                     vColor = color;
                     vec3 p = position;
                     vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
-                    float amplitude = texture2D(tAudioData, vec2(mIndex, 0.0)).r;
-                    float amplitudeClamped = clamp(amplitude - 0.4, 0.0, 0.6);
-                    float sizeMapped = map(amplitudeClamped, 0.0, 0.6, 1.0, 20.0);
+                    
+                    // 移除音频响应，改用时间驱动的动画
+                    float animation = sin(time * 0.001 + mIndex * 10.0) * 0.5 + 0.5;
+                    float sizeMapped = map(animation, 0.0, 1.0, 2.0, 15.0);
+                    
                     opacity = map(mvPosition.z, -200.0, 15.0, 0.0, 1.0);
                     gl_PointSize = sizeMapped * (100.0 / -mvPosition.z);
                     gl_Position = projectionMatrix * mvPosition;
