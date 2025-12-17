@@ -78,7 +78,7 @@
         let blessingInterval = null;
 
         function startBlessings() {
-            const overlay  = document.getElementById('overlay');
+            const overlay = document.getElementById('overlay');
             if (!overlay) return;
             if (!document.getElementById('blessing')) {
                 const el = document.createElement('div');
@@ -121,8 +121,7 @@
         let step = 0;
         const uniforms = { 
             time: { value: 0.0 }, 
-            step: { value: 0.0 },
-            // 移除音频相关uniform
+            step: { value: 0.0 }
         };
         const totalPoints = 4000;
 
@@ -167,9 +166,12 @@
             composer = new EffectComposer(renderer);
             composer.addPass(new RenderPass(scene, camera));
 
+            // 降低辉光强度
             const bloomPass = new UnrealBloomPass(
                 new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.8, 0.6, 0.5
+                1.2,  // 原来的1.8 → 降到1.2（减弱辉光）
+                0.4,  // 原来的0.6 → 降到0.4
+                0.5
             );
             composer.addPass(bloomPass);
 
@@ -188,7 +190,7 @@
         function addTree(scene, uniforms, totalPoints, treePosition) {
             const vertexShader = `
                 attribute float mIndex; varying vec3 vColor; varying float opacity;
-                uniform float time; // 改用时间驱动
+                uniform float time;
                 float norm(float v, float min, float max) { return (v - min) / (max - min); }
                 float lerp(float n, float min, float max) { return (max - min) * n + min; }
                 float map(float v, float sMin, float sMax, float dMin, float dMax) { 
@@ -199,9 +201,9 @@
                     vec3 p = position;
                     vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
                     
-                    // 移除音频响应，改用时间驱动的动画
+                    // 降低动画强度
                     float animation = sin(time * 0.001 + mIndex * 10.0) * 0.5 + 0.5;
-                    float sizeMapped = map(animation, 0.0, 1.0, 2.0, 15.0);
+                    float sizeMapped = map(animation, 0.0, 1.0, 2.0, 12.0); // 最大尺寸从15降到12
                     
                     opacity = map(mvPosition.z, -200.0, 15.0, 0.0, 1.0);
                     gl_PointSize = sizeMapped * (100.0 / -mvPosition.z);
@@ -214,8 +216,9 @@
                 uniform float time;
                 void main() {
                     vec4 color = vec4(vColor, opacity) * texture2D(pointTexture, gl_PointCoord);
-                    float flicker = 1.0 + 0.6 * sin(time * 0.01 + gl_FragCoord.x * 0.05);
-                    color.rgb *= (1.5 + flicker);
+                    // 降低亮度和闪烁幅度
+                    float flicker = 1.0 + 0.3 * sin(time * 0.01 + gl_FragCoord.x * 0.05); // 0.6→0.3
+                    color.rgb *= (1.0 + flicker); // 1.5→1.0（基础亮度降低50%）
                     gl_FragColor = color;
                 }
             `;
@@ -253,8 +256,9 @@
                     z + rand(-0.3 * modifier, 0.3 * modifier)
                 );
 
+                // 降低颜色亮度（HSL的L从0.6→0.5）
                 const hue = map(i, 0, totalPoints, 0.3, 0.0);
-                color.setHSL(hue, 1.0, 0.6);
+                color.setHSL(hue, 0.8, 0.5); // 饱和度1.0→0.8，亮度0.6→0.5
                 colors.push(color.r, color.g, color.b);
                 mIndexs.push(map(i, 0, totalPoints, 1.0, 0.0));
             }
